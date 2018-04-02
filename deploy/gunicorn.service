@@ -1,0 +1,20 @@
+[Unit]
+Description=gunicorn daemon
+Requires=gunicorn.socket
+After=network.target
+
+[Service]
+PIDFile=/run/gunicorn/pid
+User=ubuntu
+Group=ubuntu
+RuntimeDirectory=gunicorn
+WorkingDirectory=<<<< PATH TO WD >>>>
+ExecStart=<<<< PATH TO GUNICORN >>>> --pid /run/gunicorn/pid   \
+          --bind unix:/run/gunicorn/socket --error-logfile <<<< LOG DIRECTORY >>>>/error.log \
+          --log-file <<<< LOG DIRECTORY >>>>/stdout.log app:app
+ExecReload=/bin/kill -s HUP $MAINPID
+ExecStop=/bin/kill -s TERM $MAINPID
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
