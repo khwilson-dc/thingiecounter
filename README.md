@@ -1,5 +1,16 @@
 # thingiecounter
+
 This counts thingies
+
+
+## Installing
+
+After changing the configuration in `local_settings.py`, run this on the Raspberry Pi:
+
+```
+cd pi
+sudo bash install-Rpi.sh
+```
 
 Installing
 ```
