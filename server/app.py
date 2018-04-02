@@ -1,11 +1,14 @@
-import local_settings as conf
-from flask import Flask, request, jsonify
+import os
+from datetime import datetime
+
+from flask import Flask, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
-import os
 
-app = Flask(__name__)
+import local_settings as conf
+
 basedir = os.path.abspath(os.path.dirname(__file__))
+app = Flask(__name__, static_url_path=os.path.join(basedir, 'static'))
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, conf.DBFILE)
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
@@ -13,18 +16,26 @@ ma = Marshmallow(app)
 
 
 class ThingCounter(db.Model):
+    __tablename__ = 'thing_counter'
+
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(80), unique=True)
     count = db.Column(db.Integer, default=0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    def __init__(self, name):
-        self.name = name
-        self.count = 0
+
+class SinglePress(db.Model):
+    __tablename__ = 'single_press'
+
+    id = db.Column(db.Integer, primary_key=True)
+    thing_id = db.Column(db.Integer, db.ForeignKey('thing_counter.id')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 
 class ThingSchema(ma.Schema):
     class Meta:
         fields = ('id', 'name', 'count')
+
 
 thing_schema = ThingSchema()
 things_schema = ThingSchema(many=True)
@@ -34,10 +45,9 @@ class APIError(Exception):
     status_code = 400
 
     def __init__(self, message, status_code=None, payload=None):
-        Exception.__init__(self)
+        super(APIError, self).__init__()
         self.message = message
-        if status_code is not None:
-            self.status_code = status_code
+        self.status_code = status_code or 500
         self.payload = payload
 
     def to_dict(self):
@@ -55,9 +65,7 @@ def handle_invalid_usage(error):
 
 @app.route("/")
 def hello():
-    with open('index.html') as file:
-        content = file.read()
-    return content
+    app.send_static_file('index.html')
 
 
 @app.route("/tallymebanana", methods=["GET"])
@@ -90,14 +98,6 @@ def check_auth():
     return True
 
 
-def check_auth_decorator(func):
-    def wrapper(*org_args, **org_kwargs):
-        client_sekrit = request.headers.get(conf.AUTH_HDR)
-        if (client_sekrit != conf.AUTH_SEKRIT):
-            raise APIError('Say ‘friend’ and enter.', status_code=401)
-    return wrapper
-
-
 @app.route("/<thing>", methods=["PUT", "DELETE", "PURGE"])
 def manipulate_thingie(thing):
     """ manipulate_thingie -- either
@@ -106,48 +106,51 @@ def manipulate_thingie(thing):
         - or count += 1
         depending on request.method
         silently cuts off <thing> at conf.MAX_THINGIE_NAME_LENGTH bc i'm a bastard """
-    thing = ''.join([*filter(str.isalnum, thing)])
-    thing = thing[:conf.MAX_THINGIE_NAME_LENGTH]
+    thing_name = ''.join([*filter(str.isalnum, thing)])
+    thing_name = thing_name[:conf.MAX_THINGIE_NAME_LENGTH]
     q = db.session.query(ThingCounter)
-    r = q.filter(ThingCounter.name == thing)
-    ret = None
+    r = q.filter(ThingCounter.name == thing_name)
 
-    if r.count() == 1:
-        id = r.all()[0].id
-        thing = ThingCounter.query.get(id)
-        count = r.all()[0].count
-
-        if (request.method == "PURGE"):
-            check_auth()
-            thing.count = 0
-        elif (request.method == "DELETE"):
-            check_auth()
-            db.session.delete(thing)
-        elif (request.method == "PUT"):
-            thing.count = count + 1
-        else:
-            raise APIError('unallowed method: %s' % (request.method), status_code=400)
-        db.session.commit()
-        ret = thing_schema.jsonify(thing)
-
-    elif r.count() == 0:
-        if (request.method == "PUT"):
-            thing = ThingCounter(thing)
-            db.session.add(thing)
-            thing.count += 1
-            db.session.commit()
-            ret = thing_schema.jsonify(thing)
-        elif (request.method == "PURGE" or request.method == "DELETE"):
-            check_auth()
-            raise APIError("%s does not exist to %s" % (thing, request.method), status_code=409)
-        else:
-            raise APIError("%s doesn't make sense for %s" % (thing, request.method), status_code=409)
-
-    else:
+    if r.count() not in [0, 1]:
         raise APIError('number of things name %s:%d is neither {0,1}' % (thing, r.count()), status_code=520)
 
-    return ret
+    thing = r.first()
+    if not thing:
+        if request.method != "PUT":
+            raise APIError('{} does not exist to {}'.format(thing, request.method), status_code=409)
+        thing = ThingCounter(name=thing)
+        db.session.add(thing)
+
+    if request.method == "PURGE":
+        check_auth()
+        thing.count = 0
+    elif request.method == "DELETE":
+        check_auth()
+        db.session.delete(thing)
+    elif request.method == "PUT":
+        thing.count = thing.count + 1
+        db.session.add(SinglePress(thing_id=thing.id))
+    else:
+        # Should never get here; should be filtered by flask
+        raise APIError('unallowed method: %s' % (request.method), status_code=405)
+    db.session.commit()
+
+    return thing_schema.jsonify(thing)
 
 
-if __name__ == '__main__':
+@click.group()
+def cli():
+    """ Count things """
+    pass
+
+
+@cli.command('run')
+def run_command():
+    """ Start the server """
     app.run(debug=True)
+
+
+@cli.command('create')
+def create_command():
+    """ Create the database """
+    db.create_all()
