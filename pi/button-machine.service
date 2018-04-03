@@ -4,7 +4,7 @@ After=multi-user.target
 
 [Service]
 Type=idle
-ExecStart=/usr/bin/python /home/pi/thingiecounter/button-machine.py > /home/pi/thingiecounter/button.log 2>&1
+ExecStart=/usr/bin/python /home/pi/thingiecounter/button_machine.py > /home/pi/thingiecounter/button.log 2>&1
 Restart=always
 
 [Install]

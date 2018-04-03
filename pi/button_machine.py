@@ -36,7 +36,7 @@ def put_curry(endpt):
     return curry
 
 
-if __name__ == "__main__":
+def main():
     led = PWMLED(conf.LED_PIN)
     led.blink()
 
@@ -49,3 +49,7 @@ if __name__ == "__main__":
     led.pulse()
 
     pause()
+
+
+if __name__ == "__main__":
+    main()
