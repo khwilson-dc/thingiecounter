@@ -1,0 +1,18 @@
+server:
+  host: beepboop.ktensor.com
+  url: https://beepboop.ktensor.com/thingie
+  database: db.db
+  max_name_length: 64
+
+auth:
+  header: X-Thingie-Counter
+  secret: a92jfo8hrco87awhnq87q9832hf9e8a
+
+deploy:
+  working_directory: /home/ubuntu/thingiecounter
+  tmpfile_path: /run/gunicorn
+  user: ubuntu
+  group: ubuntu
+  ssl:
+    key: /etc/letsencrypt/live/beepboop.ktensor.com/privkey.pem
+    pem: /etc/letsencrypt/live/beepboop.ktensor.com/fullchain.pem

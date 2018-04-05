@@ -8,7 +8,7 @@ PIDFile={{ pidfile }}
 User={{ user }}
 Group={{ group }}
 RuntimeDirectory=gunicorn
-WorkingDirectory={{ working_diretory }}
+WorkingDirectory={{ working_directory }}
 ExecStart={{ gunicorn_path }} --pid {{ pidfile }} \
           --bind unix:{{ socketfile }} --error-logfile {{ errorlog }} \
           --log-file {{ stdlog }} app:app
