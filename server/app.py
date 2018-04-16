@@ -1,6 +1,7 @@
 import os
 from datetime import datetime
 
+import click
 from flask import Flask, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
@@ -28,7 +29,7 @@ class SinglePress(db.Model):
     __tablename__ = 'single_press'
 
     id = db.Column(db.Integer, primary_key=True)
-    thing_id = db.Column(db.Integer, db.ForeignKey('thing_counter.id')
+    thing_id = db.Column(db.Integer, db.ForeignKey('thing_counter.id'))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 
@@ -65,7 +66,7 @@ def handle_invalid_usage(error):
 
 @app.route("/")
 def hello():
-    app.send_static_file('index.html')
+    return app.send_static_file('index.html')
 
 
 @app.route("/tallymebanana", methods=["GET"])
@@ -154,3 +155,7 @@ def run_command():
 def create_command():
     """ Create the database """
     db.create_all()
+
+
+if __name__ == '__main__':
+    cli()
