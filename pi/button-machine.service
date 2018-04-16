@@ -3,8 +3,11 @@ Description=Button Machine Service
 After=multi-user.target
 
 [Service]
+User=pi
+Group=pi
 Type=idle
-ExecStart=/usr/bin/python /home/pi/thingiecounter/button_machine.py > /home/pi/thingiecounter/button.log 2>&1
+WorkingDirectory=/home/pi/thingiecounter/pi
+ExecStart=/usr/bin/python /home/pi/thingiecounter/pi/button_machine.py
 Restart=always
 
 [Install]

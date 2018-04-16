@@ -6,6 +6,7 @@
 #
 # --timball@gmail.com
 # Tue Mar 27 20:56:18 EDT 2018
+from __future__ import print_function
 
 import local_settings as conf
 from gpiozero import LED, PWMLED, Button
@@ -29,9 +30,9 @@ def put_curry(endpt):
         request.get_method = lambda: 'PUT'
         try:
             url = opener.open(request)
-        except urllib.error.URLError as e:
+        except urllib2.URLError as e:
             print("PUT %s URLError, reason: %s" % (url, e.reason))
-        except urllib.error.HTTPError as e:
+        except urllib2.HTTPError as e:
             print("HTTPError PUT %s == %s" % (url, e.code))
     return curry
 
@@ -42,8 +43,8 @@ def main():
 
     # each item in conf.BTNS[] is an individual button setting
     for this in conf.BTNS:
-        this.button = Button(this['PIN'])
-        this.button.when_released = put_curry(this['LABEL'])
+        this['button'] = Button(this['PIN'])
+        this['button']when_released = put_curry(this['LABEL'])
 
     print("ready!")
     led.pulse()
