@@ -1,4 +1,6 @@
+import logging
 import os
+import sys
 from datetime import datetime
 
 import click
@@ -15,6 +17,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 ma = Marshmallow(app)
 
+logger = logging.getLogger('gunicorn.error')
 
 class ThingCounter(db.Model):
     __tablename__ = 'thing_counter'
@@ -99,7 +102,7 @@ def check_auth():
     return True
 
 
-@app.route("/<thing>", methods=["PUT", "DELETE", "PURGE"])
+@app.route("/thing/<thing>", methods=["PUT", "DELETE", "PURGE"])
 def manipulate_thingie(thing):
     """ manipulate_thingie -- either
         - deletes an object from DB;
@@ -119,8 +122,9 @@ def manipulate_thingie(thing):
     if not thing:
         if request.method != "PUT":
             raise APIError('{} does not exist to {}'.format(thing, request.method), status_code=409)
-        thing = ThingCounter(name=thing)
+        thing = ThingCounter(name=thing_name, count=0)
         db.session.add(thing)
+        db.session.flush()  # Get id of new thing
 
     if request.method == "PURGE":
         check_auth()
