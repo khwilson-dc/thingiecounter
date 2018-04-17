@@ -1,6 +1,7 @@
 import logging
 import os
 import sys
+from collections import defaultdict
 from datetime import datetime
 
 import click
@@ -41,8 +42,14 @@ class ThingSchema(ma.Schema):
         fields = ('id', 'name', 'count')
 
 
+class PressSchema(ma.Schema):
+    class Meta:
+        fields = ('thing_id', 'created_at')
+
+
 thing_schema = ThingSchema()
 things_schema = ThingSchema(many=True)
+press_schema = PressSchema(many=True)
 
 
 class APIError(Exception):
@@ -78,6 +85,29 @@ def tallybanana():
     all_the_things = ThingCounter.query.all()
     result = things_schema.dump(all_the_things)
     return jsonify(result.data)
+
+
+@app.route('/daylightcome', methods=['GET'])
+def daylightcome():
+    """ Return the SinglePresses table with no processing """
+    all_the_things = SinglePress.query.all()
+    result = press_schema.dump(all_the_things)
+    return jsonify(result.data)
+
+
+@app.route('/iwannagohome', methods=['GET'])
+def iwannagohome():
+    """ Return the SinglePresses table with some light processing """
+    all_the_things = db.engine.execute("""
+        SELECT p.created_at, t.name
+          FROM single_press p
+          JOIN thing_counter t
+            ON p.thing_id = t.id;
+    """)
+    output = defaultdict(list)
+    for row in all_the_things:
+        output[row[1]].append(row[0])
+    return jsonify([{'name': key, 'presses': value, 'count': len(value)} for key, value in output.items()])
 
 
 @app.route("/tally", methods=["GET"])
