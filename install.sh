@@ -14,6 +14,7 @@ fi
 python deploy.py
 
 mv deploy/nginx.conf /etc/nginx/sites-available/beepboop.ktensor.com
+ln -s /etc/nginx/sites-available/beepboop.ktensor.com /etc/nginx/sites-enabled/beepboop.ktensor.com
 nginx -t
 service nginx restart
 
